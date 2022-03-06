@@ -2,7 +2,7 @@
 
 // namespace ch.cspi;
 
-// entity Suppliers as projection on bupa.A_BusinessPartner {
+// entity Customer as projection on bupa.A_BusinessPartner {
 //     key BusinessPartner as ID,
 //     BusinessPartnerFullName as fullname,
 //     BusinessPartnerIsBlocked as isBlocked
