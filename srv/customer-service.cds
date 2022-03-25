@@ -53,19 +53,19 @@ annotate CustomerManagement.Customer with @(UI: {
         },
         {
             Label: 'Street',
-            Value: to_BuinessPartnerAddress.street
+            Value: addresses.street
         },
         {
             Label: 'Postal Code',
-            Value: to_BusinessPartnerAddress.zip
+            Value: addresses.zip
         },
         {
             Label: 'City',
-            Value: to_BusinessPartnerAddress.city
+            Value: addresses.city
         },
         {
             Label: 'Region',
-            Value: to_BusinessPartnerAddress.region
+            Value: addresses.region
         },
         {
             Label: 'Full Name',
