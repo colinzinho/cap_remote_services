@@ -16,11 +16,6 @@ service DemoService {
             FirstName: String(40);
             LastName: String(40);
             BusinessPartnerIsBlocked: Boolean;
-
-            to_BusinessPartnerAddress: Association to one BusinessPartnerAddress;
-    };
-
-    entity BusinessPartnerAddress {
             CityName: String(40);
             StreetName: String(40);
             Region: String(40);
@@ -34,7 +29,7 @@ annotate DemoService.BusinessPartner with @(UI: {
         FirstName,
         LastName,
         
-        to_BusinessPartnerAddress.Country,
+        Country,
     ],
     LineItem: [
         {
@@ -51,15 +46,15 @@ annotate DemoService.BusinessPartner with @(UI: {
         },
         {
             Label: 'Street',
-            Value: to_BusinessPartnerAddress.StreetName
+            Value: StreetName
         },
         {
             Label: 'City',
-            Value: to_BusinessPartnerAddress.CityName
+            Value: CityName
         },
         {
             Label: 'Country',
-            Value: to_BusinessPartnerAddress.Country
+            Value: Country
         }
     ],
     HeaderInfo: {
@@ -86,3 +81,5 @@ annotate DemoService.BusinessPartner with @(UI: {
         }
     },
 });
+
+annotate DemoService.BusinessPartner with @odata.draft.enabled;
