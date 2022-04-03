@@ -1,4 +1,8 @@
+const { OPEN_READWRITE } = require("sqlite3");
+const _aWords = ['CityName', 'StreetName', 'Region', 'Country'];
+
 class DemoService extends cds.ApplicationService {
+    
     async init () {
         const bupa = await cds.connect.to("OP_API_BUSINESS_PARTNER_SRV");
         /**
@@ -10,7 +14,6 @@ class DemoService extends cds.ApplicationService {
          */
         const { BusinessPartner } = this.entities;
 
-        const _aWords = ['CityName', 'StreetName', 'Region', 'Country'];
         
         this.on('READ', BusinessPartner, async  (req) => {
             this.oCurrentRequest = req.query.SELECT;
@@ -32,25 +35,30 @@ class DemoService extends cds.ApplicationService {
             };
             aColumns.push(oAddress);
 
-            if(req.query.SELECT.search) {
+            /**
+             * Auch mit switch case möglich?
+             * switch (req.query.SELECT) {
+             *   case req.query.SELECT.where !== undefined:
+             *        ...
+             *    case ["search"]:
+             *        ...
+             *    default:
+             *        ...
+             *   }   
+             */
 
-                if(Array.isArray(req.query.SELECT.columns)) {
-                    for(let i = 0; i < req.query.SELECT.columns.length; i++) {
-                        const oColumn = req.query.SELECT.columns[i];
-                        const bIncluded = _aWords.includes(oColumn.ref[0]);
-                        if(bIncluded) {
-                            req.query.SELECT.columns.splice(i, 1);
-                            i--;
-                        }
-                    }
+            if(req.query.SELECT.where) {
+                const aWhereClauses = this._buildWhereClauses(req);
+                if(aWhereClauses.length === 1) {
+                    oQuery = this._buildQuery(A_BusinessPartner, aColumns, aWhereClauses[0])
+                } else {
+                    oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
                 }
-                oQuery = this._buildQuery(A_BusinessPartner, aColumns, {FirstName: req.query.SELECT.search[0].val})
-                console.log(req.query.SELECT.columns);
-            }
-
-            
-
-            oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
+            } else if(req.query.SELECT.search) {
+                this._buildSearchClause(req);
+            } else {
+                oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
+            }                     
             
             const aBusinessPartner = await bupa.tx(req).run(oQuery);
 
@@ -96,7 +104,7 @@ class DemoService extends cds.ApplicationService {
 
     _buildQuery(oEntity, aColumns, aWhereClause) {
         if(oEntity) {
-            if(Array.isArray(aColumns) && aColumns.length < 0) {
+            if(Array.isArray(aColumns) && aColumns.length > 0) {
                 let oQuery = SELECT.from(oEntity).columns(aColumns);
                 if(aWhereClause) {
                     oQuery = oQuery.where(aWhereClause);
@@ -106,6 +114,41 @@ class DemoService extends cds.ApplicationService {
         }else {
             return;
         }
+    }
+    
+    _buildWhereClauses(req) {
+        const aSelectionFields = req.target["@UI.SelectionFields"]; // any field you can access using the . operator, you can access using [] with a string version of the field name.
+        let aWhereClauses = [];
+        for(let i = 0; i < req.query.SELECT.where.length; i++) {
+            let oObj = req.query.SELECT.where[i];
+            if(oObj.ref) {
+                for(let j = 0; j < aSelectionFields.length; j++) {
+                    const oSelectionFields = aSelectionFields[j];
+                    if(oObj.ref[0] === oSelectionFields["="]) {
+                        i+=2; 
+                        let oVal = req.query.SELECT.where[i]; // get value for ref
+                        let oWhereClause = {};
+                        oWhereClause[oObj["ref"][0]] = oVal.val;
+                        aWhereClauses.push(oWhereClause);
+                    }
+                }
+            }
+        }
+        return aWhereClauses;
+    }
+
+    _buildSearchClause(req) {
+        if(Array.isArray(req.query.SELECT.columns)) {
+            for(let i = 0; i < req.query.SELECT.columns.length; i++) {
+                const oColumn = req.query.SELECT.columns[i];
+                const bIncluded = _aWords.includes(oColumn.ref[0]);
+                if(bIncluded) {
+                    req.query.SELECT.columns.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+        oQuery = this._buildQuery(A_BusinessPartner, aColumns, {FirstName: req.query.SELECT.search[0].val})
     }
 }
 module.exports = { DemoService };
