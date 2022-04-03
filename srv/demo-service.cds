@@ -16,7 +16,7 @@ service DemoService {
             FirstName: String(40);
             LastName: String(40);
             BusinessPartnerIsBlocked: Boolean;
-            
+
             CityName: String(40);
             StreetName: String(40);
             Region: String(40);

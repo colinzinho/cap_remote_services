@@ -4,14 +4,17 @@ class DemoService extends cds.ApplicationService {
         /**
          * external service(s)
          */
-        const { A_BusinessPartner } = bupa.entities;
+        const { A_BusinessPartner, A_BusinessPartnerAddress } = bupa.entities;
         /**
          * local service(s)
          */
         const { BusinessPartner } = this.entities;
+
+        const _aWords = ['CityName', 'StreetName', 'Region', 'Country'];
         
         this.on('READ', BusinessPartner, async  (req) => {
             this.oCurrentRequest = req.query.SELECT;
+            let oQuery;
             const aColumns = [];
 
             aColumns.push({ ref: "BusinessPartner" }); // key field
@@ -29,8 +32,25 @@ class DemoService extends cds.ApplicationService {
             };
             aColumns.push(oAddress);
 
-            const oQuery = SELECT.from(A_BusinessPartner)
-                    .columns(aColumns);
+            if(req.query.SELECT.search) {
+
+                if(Array.isArray(req.query.SELECT.columns)) {
+                    for(let i = 0; i < req.query.SELECT.columns.length; i++) {
+                        const oColumn = req.query.SELECT.columns[i];
+                        const bIncluded = _aWords.includes(oColumn.ref[0]);
+                        if(bIncluded) {
+                            req.query.SELECT.columns.splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+                oQuery = this._buildQuery(A_BusinessPartner, aColumns, {FirstName: req.query.SELECT.search[0].val})
+                console.log(req.query.SELECT.columns);
+            }
+
+            
+
+            oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
             
             const aBusinessPartner = await bupa.tx(req).run(oQuery);
 
@@ -72,6 +92,20 @@ class DemoService extends cds.ApplicationService {
             return true;
         }
         return false;
+    }
+
+    _buildQuery(oEntity, aColumns, aWhereClause) {
+        if(oEntity) {
+            if(Array.isArray(aColumns) && aColumns.length < 0) {
+                let oQuery = SELECT.from(oEntity).columns(aColumns);
+                if(aWhereClause) {
+                    oQuery = oQuery.where(aWhereClause);
+                }
+                return oQuery;
+            }
+        }else {
+            return;
+        }
     }
 }
 module.exports = { DemoService };
