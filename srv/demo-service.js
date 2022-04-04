@@ -1,5 +1,4 @@
 const { v4: uuidv4 } = require("uuid");
-const _aWords = ["CityName", "StreetName", "Region", "Country"];
 class DemoService extends cds.ApplicationService {
   async init() {
     const bupa = await cds.connect.to("OP_API_BUSINESS_PARTNER_SRV");
@@ -43,7 +42,6 @@ class DemoService extends cds.ApplicationService {
        *        ...
        *   }
        */
-
       if (req.query.SELECT.where) {
         const aWhereClauses = this._buildWhereClauses(req);
         if (aWhereClauses.length === 1) {
@@ -92,16 +90,23 @@ class DemoService extends cds.ApplicationService {
 
       const mBusinessPartnerMapping = new Map();
 
+      /**
+       * array with ID's of selected Business Partners (line 89)
+       * map through selected Business Partners
+       */
       const aBusinessPartnerIDs = aBusinessPartner.map(
         (oBusinessPartner) => oBusinessPartner.BusinessPartner
       );
       const aBusinessPartnerUUIDs = await cds.run(
-        SELECT.from(BusinessPartner)
+        SELECT.from(BusinessPartner) // local entity -> defined in schema.cds
           .columns("ID", "BusinessPartner")
           .where({ BusinessPartner: aBusinessPartnerIDs })
       );
 
-      const aInsertPromises = aBusinessPartnerIDs.map((sBusinessPartnerID) => {
+      /**
+       * block to make sure that uuid and business partner id exist for every business partner - completed with first load
+       */
+      const aInsertPromises = aBusinessPartnerIDs.map((sBusinessPartnerID) => { // '1000030'
         const oUUID = aBusinessPartnerUUIDs.find(
           (oBusinessPartnerUUID) =>
             oBusinessPartnerUUID.BusinessPartner === sBusinessPartnerID
@@ -150,7 +155,6 @@ class DemoService extends cds.ApplicationService {
         if (this.isColumnRequest("Country"))
           oRecord.Country = oData.to_BusinessPartnerAddress[0]?.Country || "";
 
-        // delete oData.to_BusinessPartnerAddress;
         return oRecord;
       });
       // Count data if requested
@@ -219,19 +223,7 @@ class DemoService extends cds.ApplicationService {
   }
 
   _buildSearchClause(req) {
-    if (Array.isArray(req.query.SELECT.columns)) {
-      for (let i = 0; i < req.query.SELECT.columns.length; i++) {
-        const oColumn = req.query.SELECT.columns[i];
-        const bIncluded = _aWords.includes(oColumn.ref[0]);
-        if (bIncluded) {
-          req.query.SELECT.columns.splice(i, 1);
-          i--;
-        }
-      }
-    }
-    oQuery = this._buildQuery(A_BusinessPartner, aColumns, {
-      FirstName: req.query.SELECT.search[0].val,
-    });
+    // ...
   }
 }
 module.exports = { DemoService };
