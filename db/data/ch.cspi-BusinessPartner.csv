@@ -1,0 +1,5 @@
+ID;BusinessPartner;FirstName;LastName;BusinessPartnerIsBlocked;CityName;StreetName;Region;Country
+de94fd4e-7ed6-4237-8fc2-b0896027828c;0001;Colin;Spichiger;true;Lisbon;Rua Castilho 72;Lisbon;PT
+60841af4-3b40-4d77-8851-426222c7aa23;0002;Sian;Rennhard;false;Beinwil am See;Bahnhofstrasse 2;Aargau;CH
+b9eb15c4-4a5d-4251-9a24-50d85fcb77a3;0003;Nic;Luginbühl;true;Zürich;Langstrasse 3;Zürich;CH
+972ba6a5-93e2-4da3-b5d8-4ae53e1b170f;0004;Niklas;Ennser;true;Karlsruhe;Berlinerstrasse 16;Karlsruhe;DE

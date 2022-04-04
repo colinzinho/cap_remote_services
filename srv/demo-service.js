@@ -1,19 +1,16 @@
-const { OPEN_READWRITE } = require("sqlite3");
+const { v4: uuidv4 } = require('uuid');
 const _aWords = ['CityName', 'StreetName', 'Region', 'Country'];
-
 class DemoService extends cds.ApplicationService {
-    
     async init () {
         const bupa = await cds.connect.to("OP_API_BUSINESS_PARTNER_SRV");
         /**
          * external service(s)
          */
-        const { A_BusinessPartner, A_BusinessPartnerAddress } = bupa.entities;
+        const { A_BusinessPartner } = bupa.entities;
         /**
          * local service(s)
          */
         const { BusinessPartner } = this.entities;
-
         
         this.on('READ', BusinessPartner, async  (req) => {
             this.oCurrentRequest = req.query.SELECT;
@@ -63,6 +60,7 @@ class DemoService extends cds.ApplicationService {
             const aBusinessPartner = await bupa.tx(req).run(oQuery);
 
             const aData = aBusinessPartner.map((oData) => {
+                oData.ID = uuidv4(); // add uuid for each data entry
                 if(this.isColumnRequest("CityName"))
                     oData.CityName = oData.to_BusinessPartnerAddress[0]?.CityName || "";
                 if(this.isColumnRequest("StreetName"))
@@ -81,7 +79,6 @@ class DemoService extends cds.ApplicationService {
             }
             return aData;
         });
-
         await super.init();
     }
 

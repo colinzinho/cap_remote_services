@@ -53,6 +53,12 @@
             "authentication": "BasicAuthentication"
           }
         }
+      },
+      "db": {
+        "kind": "sqlite",
+        "credentials": {
+          "database": "my.db"
+        }
       }
     }
   }

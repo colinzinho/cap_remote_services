@@ -1,27 +1,13 @@
-using { OP_API_BUSINESS_PARTNER_SRV as bupa } from './external/OP_API_BUSINESS_PARTNER_SRV.cds';
+using { ch.cspi as db } from '../db/schema';
 using { cuid } from '@sap/cds/common';
 
 service DemoService {
     
-    entity A_BusinessPartner as projection on bupa.A_BusinessPartner {
-        *
-    };
+    entity A_BusinessPartner as projection on db.A_BusinessPartner;
 
-    entity A_BusinessPartnerAddress as projection on bupa.A_BusinessPartnerAddress {
-        *
-    };
+    entity A_BusinessPartnerAddress as projection on db.A_BusinessPartnerAddress;
 
-    entity BusinessPartner: cuid {
-        key BusinessPartner: String(40);
-            FirstName: String(40);
-            LastName: String(40);
-            BusinessPartnerIsBlocked: Boolean;
-
-            CityName: String(40);
-            StreetName: String(40);
-            Region: String(40);
-            Country: String(4);
-    };
+    entity BusinessPartner as projection on db.BusinessPartner;
 }
 
 annotate DemoService.BusinessPartner with @(UI: {
@@ -29,7 +15,6 @@ annotate DemoService.BusinessPartner with @(UI: {
         BusinessPartner,
         FirstName,
         LastName,
-        
         Country,
     ],
     LineItem: [
@@ -58,6 +43,20 @@ annotate DemoService.BusinessPartner with @(UI: {
             Value: Country
         }
     ],
+    PresentationVariant: {
+        Visualizations: [
+            '@UI.LineItem'
+        ],
+        RequestAtLeast: [
+            BusinessPartner
+        ],
+        SortOrder: [
+            {
+                Property: BusinessPartner,
+                Descending: false
+            }
+        ]
+    },
     HeaderInfo: {
         TypeName: 'Business Partner',
         TypeNamePlural: 'Business Partner',
@@ -81,6 +80,58 @@ annotate DemoService.BusinessPartner with @(UI: {
             Value: BusinessPartner
         }
     },
-});
+    Facets: [
+        {
+            $Type: 'UI.ReferenceFacet',
 
+            Label: 'Customer Information',
+
+            Target: '@UI.FieldGroup#customerInfo'
+        },
+        {
+            $Type: 'UI.ReferenceFacet',
+
+            Label: 'Customer Address',
+
+            Target: '@UI.FieldGroup#customerAddress'
+        }
+    ],
+    FieldGroup#customerInfo: {
+        Data: [
+            {
+                Value: BusinessPartner
+            },
+            {
+                Value: FirstName
+            },
+            {
+                Value: LastName
+            },
+            {
+                Value: BusinessPartnerIsBlocked
+            }
+        ]
+    },
+    FieldGroup#customerAddress:  {
+        Data: [
+            {
+                Value: StreetName
+            },
+            {
+                Value: CityName
+            },
+            {
+                Value: Region
+            },
+            {
+                Value: Country
+            }
+        ]
+    }
+});
+annotate DemoService.BusinessPartner with @( // https://answers.sap.com/questions/13047732/display-draftadministrativedata-in-a-table.html
+    Common: {
+        SemanticKey: [FirstName, LastName]
+    }
+);
 annotate DemoService.BusinessPartner with @odata.draft.enabled;
