@@ -44,6 +44,7 @@ class DemoService extends cds.ApplicationService {
        */
       if (req.query.SELECT.where) {
         const aWhereClauses = this._buildWhereClauses(req);
+        // if aWhereClauses.length > 0
         if (aWhereClauses.length === 1) {
           oQuery = this._buildQuery(
             A_BusinessPartner,
@@ -188,18 +189,17 @@ class DemoService extends cds.ApplicationService {
   }
 
   _buildWhereClauses(req) {
+    const aReqWhere = req.query.SELECT.where;
     const aSelectionFields = req.target["@UI.SelectionFields"]; // any field you can access using the . operator, you can access using [] with a string version of the field name.
     let aWhereClauses = [];
-    for (let i = 0; i < req.query.SELECT.where.length; i++) {
-      let oObj = req.query.SELECT.where[i];
+    for (let i = 0; i < aReqWhere.length; i++) {
+      let oObj = aReqWhere[i];
       if (oObj.ref) {
         for (let j = 0; j < aSelectionFields.length; j++) {
-          const oSelectionFields = aSelectionFields[j];
-          if (oObj.ref[0] === oSelectionFields["="]) {
+          if (oObj.ref[0] === aSelectionFields[j]["="]) {
             i += 2;
-            let oVal = req.query.SELECT.where[i]; // get value for ref
             let oWhereClause = {};
-            oWhereClause[oObj["ref"][0]] = oVal.val;
+            oWhereClause[oObj["ref"][0]] = aReqWhere[i].val; // get value for ref
             aWhereClauses.push(oWhereClause);
           }
         }
