@@ -59,44 +59,24 @@ class DemoService extends cds.ApplicationService {
         oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
       }
 
-    //   const oQuery2 = { ...req.query };
-    //   if (oQuery2.SELECT.from.ref[0].id) {
-    //     oQuery2.SELECT.from.ref[0].id = A_BusinessPartner.name;
-    //   } else {
-    //     oQuery2.SELECT.from.ref[0] = A_BusinessPartner.name;
-    //   }
-    //   const aDeleteColumns = [];
-    //   oQuery2.SELECT.columns?.forEach((oColumn, iIndex) => {
-    //     switch (oColumn.ref[0]) {
-    //       case "ID":
-    //       case "HasDraftEntity":
-    //       case "HasActiveEntity":
-    //       case "IsActiveEntity":
-    //       case "DraftAdministrativeData":
-    //         aDeleteColumns.push(iIndex);
-    //         break;
-    //       default:
-    //     }
-    //   });
-
-    //   aDeleteColumns.sort((a, b) => {
-    //     return b - a;
-    //   });
-    //   aDeleteColumns.forEach((iIndex) => {
-    //     oQuery2.SELECT.columns.splice(iIndex, 1);
-    //   });
+    // !! commented code from faebu !!
 
       const aBusinessPartner = await bupa.tx(req).run(oQuery);
 
+      /**
+       * map - key value pairs
+       * save Business Partner Id as key and Business Partner object as value 
+       */
       const mBusinessPartnerMapping = new Map();
 
       /**
        * array with ID's of selected Business Partners (line 89)
        * map through selected Business Partners
+       * aBusinessPartner.map(function (oBusinessPartner) {
+       *    return oBusinessPartner.BusinessPartner
+       * });
        */
-      const aBusinessPartnerIDs = aBusinessPartner.map(
-        (oBusinessPartner) => oBusinessPartner.BusinessPartner
-      );
+      const aBusinessPartnerIDs = aBusinessPartner.map((oBusinessPartner) => oBusinessPartner.BusinessPartner);  // implicit return
       const aBusinessPartnerUUIDs = await cds.run(
         SELECT.from(BusinessPartner) // local entity -> defined in schema.cds
           .columns("ID", "BusinessPartner")
@@ -125,6 +105,9 @@ class DemoService extends cds.ApplicationService {
 
       await Promise.all(aInsertPromises);
 
+      /**
+       * select from then entity (BusinessPartner) stored in the database
+       */
       const aData = await cds.run(
         SELECT.from(req.query.SELECT.from).where({
           BusinessPartner: aBusinessPartnerIDs,
@@ -135,6 +118,9 @@ class DemoService extends cds.ApplicationService {
         mBusinessPartnerMapping.set(oData.BusinessPartner, oData);
       });
 
+      /**
+       * enrich Business Partner data
+       */
       const aResult = aBusinessPartner.map((oData) => {
         const oRecord = mBusinessPartnerMapping.get(oData.BusinessPartner);
         if (!oRecord) {
@@ -227,3 +213,32 @@ class DemoService extends cds.ApplicationService {
   }
 }
 module.exports = { DemoService };
+
+
+
+//   const oQuery2 = { ...req.query };
+    //   if (oQuery2.SELECT.from.ref[0].id) {
+    //     oQuery2.SELECT.from.ref[0].id = A_BusinessPartner.name;
+    //   } else {
+    //     oQuery2.SELECT.from.ref[0] = A_BusinessPartner.name;
+    //   }
+    //   const aDeleteColumns = [];
+    //   oQuery2.SELECT.columns?.forEach((oColumn, iIndex) => {
+    //     switch (oColumn.ref[0]) {
+    //       case "ID":
+    //       case "HasDraftEntity":
+    //       case "HasActiveEntity":
+    //       case "IsActiveEntity":
+    //       case "DraftAdministrativeData":
+    //         aDeleteColumns.push(iIndex);
+    //         break;
+    //       default:
+    //     }
+    //   });
+
+    //   aDeleteColumns.sort((a, b) => {
+    //     return b - a;
+    //   });
+    //   aDeleteColumns.forEach((iIndex) => {
+    //     oQuery2.SELECT.columns.splice(iIndex, 1);
+    //   });
