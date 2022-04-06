@@ -129,9 +129,40 @@ annotate DemoService.BusinessPartner with @(UI: {
         ]
     }
 });
-annotate DemoService.BusinessPartner with @( // https://answers.sap.com/questions/13047732/display-draftadministrativedata-in-a-table.html
-    Common: {
-        SemanticKey: [FirstName, LastName]
-    }
-);
+// annotate DemoService.BusinessPartner with @( // https://answers.sap.com/questions/13047732/display-draftadministrativedata-in-a-table.html
+//     Common: {
+//         SemanticKey: [FirstName, LastName]
+//     }
+// );
+
+annotate DemoService.BusinessPartner with {
+    @readonly
+    @Search.DefaultSearchElement: true
+    @Search.Searchable: true
+    BusinessPartner;
+};
+
+annotate DemoService.BusinessPartner with {
+    BusinessPartner @(Common: {
+        ValueList: {
+            CollectionPath: 'A_BusinessPartner',
+            SearchSupported: true,
+            Parameters: [
+                {
+                    $Type: 'Common.ValueListParameterInOut',
+
+                    LocalDataProperty: 'BusinessPartner',
+
+                    ValueListProperty: 'BusinessPartner'
+                },
+                {
+                    $Type: 'Common.ValueListParameterDisplayOnly',
+
+                    ValueListProperty: 'FirstName'
+                }
+            ]
+        }
+    })
+};
+
 annotate DemoService.BusinessPartner with @odata.draft.enabled;
