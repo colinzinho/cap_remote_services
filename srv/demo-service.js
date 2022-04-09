@@ -1,3 +1,6 @@
+var _ = require('underscore');
+_.mixin(require('underscore.deepclone'));
+
 const { v4: uuidv4 } = require("uuid");
 class DemoService extends cds.ApplicationService {
   async init() {
@@ -13,26 +16,35 @@ class DemoService extends cds.ApplicationService {
 
     this.on("READ", BusinessPartner, async (req) => {
       this.oCurrentRequest = req.query.SELECT;
-      let oQuery;
-      const aColumns = [];
-      this._createColumns(aColumns);
+      var oCurrentReqClone = _.deepClone(req.query);
+
+      req.query.SELECT.from.ref = [];
+      req.query.SELECT.from.ref.push('OP_API_BUSINESS_PARTNER_SRV.A_BusinessPartner')
 
       switch (true) {
-        case (this.oCurrentRequest.where !== undefined):
-          const aWhereClause = this._buildWhereClause(this.oCurrentRequest.where, req);
-          const oWhereClause = (aWhereClause.length === 1) ? aWhereClause[0] : null; // if aWhereClause.length > 0
-          oQuery = this._buildQuery(A_BusinessPartner, aColumns, oWhereClause);
+        case (req.query.SELECT.columns !== undefined):
+           this._deleteDraftColumns(req.query.SELECT.columns);
+           this._addAssociation(req.query.SELECT.columns); // add association
+
+        case (req.query.SELECT.orderBy !== undefined):
+          if(req.query.SELECT.orderBy.length > 1) {
+            const popped = req.query.SELECT.orderBy.pop();
+            console.log(popped);
+          }
+
+        case (req.query.SELECT.where !== undefined):
+           this._buildWhereClause(req);          
           break;
-        case (this.oCurrentRequest.from.ref[0].where !== undefined):
-          const sUUID = this._getSelectedBusinessPartnerByUUID();
-          const oBP = await SELECT.from(BusinessPartner).columns("BusinessPartner").where({ID: sUUID});
-          oQuery = this._buildQuery(A_BusinessPartner, aColumns, oBP[0]);
+          
+        case (req.query.SELECT.from.ref[0].where !== undefined):
+          // const sUUID = this._getSelectedBusinessPartnerByUUID();
+          // const oBP = await SELECT.from(BusinessPartner).columns("BusinessPartner").where({ID: sUUID});
+          // oQuery = this._buildQuery(A_BusinessPartner, aColumns, oBP[0]);
           break;
         default:
-          oQuery = this._buildQuery(A_BusinessPartner, aColumns, null);
       }
 
-      const aBusinessPartner = await bupa.tx(req).run(oQuery);
+      const aBusinessPartner = await bupa.tx(req).run(req.query);
 
       /**
        * map - key value pairs
@@ -73,10 +85,10 @@ class DemoService extends cds.ApplicationService {
       await Promise.all(aInsertPromises);
 
       /**
-       * select from then entity (BusinessPartner) stored in the database
+       * select from the entity (BusinessPartner) stored in the database
        */
       const aData = await cds.run(
-        SELECT.from(this.oCurrentRequest.from).where({
+        SELECT.from(oCurrentReqClone.SELECT.from).where({
           BusinessPartner: aBusinessPartnerIDs,
         })
       );
@@ -115,23 +127,6 @@ class DemoService extends cds.ApplicationService {
     await super.init();
   }
 
-  _createColumns(aColumns) {
-    aColumns.push({ ref: "BusinessPartner" }); // key field
-    aColumns.push({ ref: "FirstName" });
-    aColumns.push({ ref: "LastName" });
-    aColumns.push({ ref: "BusinessPartnerIsBlocked" });
-    const oAddress = {
-      ref: ["to_BusinessPartnerAddress"],
-      expand: [
-        { ref: "CityName" },
-        { ref: "StreetName" },
-        { ref: "Region" },
-        { ref: "Country" },
-      ],
-    };
-    aColumns.push(oAddress);
-  }
-
   isColumnRequest(sColName) {
     if (!this.oCurrentRequest.columns) {
       return true;
@@ -147,6 +142,43 @@ class DemoService extends cds.ApplicationService {
       return true;
     }
     return false;
+  }
+
+  _deleteDraftColumns(aColumns) {
+    const aDeleteColumns = [];
+    aColumns.forEach((oColumn, iIndex) => {
+      switch (oColumn.ref[0]) {
+        case "CityName":
+        case "StreetName":
+        case "Region":
+        case "Country":
+        case "ID":
+        case "IsActiveEntity":
+        case "HasActiveEntity":
+          aDeleteColumns.push(iIndex);
+          break;
+        default:
+      }
+    });
+    aDeleteColumns.sort((a, b) => {
+      return b - a;
+    });
+    aDeleteColumns.forEach((iIndex) => {
+      aColumns.splice(iIndex, 1);
+    })
+  }
+
+  _addAssociation(aColumns) {
+    const oAddress = {
+      ref: ["to_BusinessPartnerAddress"],
+      expand: [
+        { ref: "CityName" },
+        { ref: "StreetName" },
+        { ref: "Region" },
+        { ref: "Country" }
+      ]
+    };
+    aColumns.push(oAddress);
   }
 
   _buildQuery(oEntity, aColumns, aWhereClause) {
@@ -169,23 +201,37 @@ class DemoService extends cds.ApplicationService {
    * @param {Object} req 
    * @returns Array of where clauses
    */
-  _buildWhereClause(aReqWhereClause, req) {
+  _buildWhereClause(req) {
     const aSelectionFields = req.target["@UI.SelectionFields"]; // any field you can access using the . operator, you can access using [] with a string version of the field name.
-    let aWhereClauses = [];
-    for (let i = 0; i < aReqWhereClause.length; i++) {
-      let oObj = aReqWhereClause[i];
-      if (oObj.ref) {
-        for (let j = 0; j < aSelectionFields.length; j++) {
-          if (oObj.ref[0] === aSelectionFields[j]["="]) {
-            i += 2;
-            let oWhereClause = {};
-            oWhereClause[oObj["ref"][0]] = aReqWhereClause[i].val; // get value for ref
-            aWhereClauses.push(oWhereClause);
-          }
-        }
+
+    let aDeleteIndex = [];
+    for(let i = 1; i < req.query.SELECT.where.length-1; i++) { // '(' and ')' will be left out
+      if(req.query.SELECT.where[i]?.ref){
+        let bMatches = aSelectionFields.includes(req.query.SELECT.where[i].ref[0]);
+        if(!bMatches)
+          aDeleteIndex.push(i, i+1, i+2);
+        i += 2;
+      }
+      else
+        aDeleteIndex.push(i);
+    }
+
+    aDeleteIndex.sort((a, b) => {
+      return b - a;
+    })
+    aDeleteIndex.forEach((iIndex) => {
+      req.query.SELECT.where.splice(iIndex, 1);
+    })          
+
+    if(req.query.SELECT.length > 3) {
+      for(let i = 0; i < req.query.SELECT.where.length-1; i++) {
+        // req.query.SELECT.where.push
       }
     }
-    return aWhereClauses;
+
+    if(req.query.SELECT.where.length <= 2) {
+      delete req.query.SELECT.where;
+    }
   }
 
   _getSelectedBusinessPartnerByUUID() {
